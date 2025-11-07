@@ -842,18 +842,414 @@ public class MainController {
         EventManager.getInstance().clearAllListeners();
     }
 
-    // Placeholder methods for tab-specific functionality
-    // These would be implemented in separate controllers or as part of this controller
+    // Password Analysis Handlers
+    @FXML
+    public void handleAnalyzePassword() {
+        String password = showPasswordCheckBox.isSelected() ?
+                         visiblePasswordField.getText() : passwordField.getText();
 
-    public void handleAnalyzePassword() { /* Implementation */ }
-    public void handleStartScan() { /* Implementation */ }
-    public void handleStopScan() { /* Implementation */ }
-    public void handleClearScanResults() { /* Implementation */ }
-    public void handleSetCommonPorts() { /* Implementation */ }
-    public void handleSetAllPorts() { /* Implementation */ }
-    public void handleBrowseFile() { /* Implementation */ }
-    public void handleEncryptFile() { /* Implementation */ }
-    public void handleDecryptFile() { /* Implementation */ }
-    public void handleGenerateKeys() { /* Implementation */ }
-    public void handleClearEncryptionHistory() { /* Implementation */ }
+        if (password == null || password.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "No Password", "Please enter a password to analyze.");
+            return;
+        }
+
+        updateStatusLabel("Analyzing password...");
+
+        Task<PasswordAnalysis> analysisTask = new Task<>() {
+            @Override
+            protected PasswordAnalysis call() throws Exception {
+                return passwordAnalysisService.analyzePassword(password);
+            }
+
+            @Override
+            protected void succeeded() {
+                currentPasswordAnalysis = getValue();
+                updatePasswordAnalysisDisplay(currentPasswordAnalysis);
+                updateStatusLabel("Password analysis completed");
+
+                // Publish completion event
+                EventManager.getInstance().publishEvent(new EventManager.PasswordAnalysisCompletedEvent(
+                    currentPasswordAnalysis.getId(),
+                    currentPasswordAnalysis.getStrengthScore(),
+                    true
+                ));
+            }
+
+            @Override
+            protected void failed() {
+                updateStatusLabel("Password analysis failed: " + getException().getMessage());
+                EventManager.getInstance().publishEvent(new EventManager.PasswordAnalysisCompletedEvent(
+                    "", 0, false
+                ));
+            }
+        };
+
+        new Thread(analysisTask).start();
+    }
+
+    // Port Scanner Handlers
+    @FXML
+    public void handleStartScan() {
+        String targetHost = targetHostField.getText();
+        String startPortText = startPortField.getText();
+        String endPortText = endPortField.getText();
+        String timeoutText = timeoutField.getText();
+
+        // Validate inputs
+        if (targetHost.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "Invalid Input", "Please enter a target host.");
+            return;
+        }
+
+        try {
+            int startPort = Integer.parseInt(startPortText);
+            int endPort = Integer.parseInt(endPortText);
+            int timeout = Integer.parseInt(timeoutText);
+
+            if (startPort < 1 || endPort > 65535 || startPort > endPort) {
+                showAlert(Alert.AlertType.WARNING, "Invalid Port Range", "Please enter a valid port range (1-65535).");
+                return;
+            }
+
+            // Start scan
+            setScanningUIState(true);
+            updateStatusLabel("Starting port scan...");
+            scanResults.clear();
+
+            Task<PortScanResult> scanTask = new Task<>() {
+                private volatile boolean cancelled = false;
+
+                @Override
+                protected PortScanResult call() throws Exception {
+                    // Publish progress events periodically
+                    Timer progressTimer = new Timer();
+                    progressTimer.scheduleAtFixedRate(new TimerTask() {
+                        private int currentPort = startPort;
+
+                        @Override
+                        public void run() {
+                            if (!cancelled && currentPort <= endPort) {
+                                EventManager.getInstance().publishEvent(new EventManager.PortScanProgressEvent(
+                                    "scan-" + System.currentTimeMillis(),
+                                    currentPort,
+                                    endPort - startPort + 1,
+                                    0 // Will be updated with actual open ports
+                                ));
+                                currentPort += 50; // Update every 50 ports
+                            }
+                        }
+                    }, 1000, 1000);
+
+                    try {
+                        PortScanResult result = portScanService.scanPorts(targetHost, startPort, endPort, timeout);
+                        progressTimer.cancel();
+                        return result;
+                    } catch (Exception e) {
+                        progressTimer.cancel();
+                        throw e;
+                    }
+                }
+
+                @Override
+                protected void cancelled() {
+                    portScanService.cancelScan();
+                    super.cancelled();
+                }
+
+                @Override
+                protected void succeeded() {
+                    currentPortScanResult = getValue();
+                    scanResults.setAll(currentPortScanResult.getPortResults());
+                    setScanningUIState(false);
+                    updateScanStats(currentPortScanResult);
+                    updateStatusLabel("Port scan completed - " + currentPortScanResult.getOpenPortsCount() + " open ports found");
+
+                    EventManager.getInstance().publishEvent(new EventManager.PortScanCompletedEvent(
+                        currentPortScanResult.getId(),
+                        currentPortScanResult.getOpenPortsCount(),
+                        currentPortScanResult.getVulnerablePortsCount(),
+                        true
+                    ));
+                }
+
+                @Override
+                protected void failed() {
+                    setScanningUIState(false);
+                    updateStatusLabel("Port scan failed: " + getException().getMessage());
+
+                    EventManager.getInstance().publishEvent(new EventManager.PortScanCompletedEvent(
+                        "", 0, 0, false
+                    ));
+                }
+            };
+
+            new Thread(scanTask).start();
+
+        } catch (NumberFormatException e) {
+            showAlert(Alert.AlertType.WARNING, "Invalid Input", "Please enter valid numeric values for ports and timeout.");
+        }
+    }
+
+    @FXML
+    public void handleStopScan() {
+        portScanService.cancelScan();
+        updateStatusLabel("Port scan cancelled");
+    }
+
+    @FXML
+    public void handleClearScanResults() {
+        scanResults.clear();
+        currentPortScanResult = null;
+        scanStatsLabel.setText("No scan performed");
+        updateStatusLabel("Scan results cleared");
+    }
+
+    @FXML
+    public void handleSetCommonPorts() {
+        startPortField.setText("1");
+        endPortField.setText("1024");
+        updateStatusLabel("Set to common ports (1-1024)");
+    }
+
+    @FXML
+    public void handleSetAllPorts() {
+        startPortField.setText("1");
+        endPortField.setText("65535");
+        updateStatusLabel("Set to all ports (1-65535)");
+    }
+
+    // File Encryption Handlers
+    @FXML
+    public void handleBrowseFile() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select File for Encryption/Decryption");
+
+        File file = fileChooser.showOpenDialog(getStage());
+        if (file != null) {
+            selectedFilePath.setText(file.getAbsolutePath());
+            updateStatusLabel("Selected file: " + file.getName());
+        }
+    }
+
+    @FXML
+    public void handleEncryptFile() {
+        String filePath = selectedFilePath.getText();
+        String password = encryptionPasswordField.getText();
+        String algorithm = algorithmComboBox.getValue();
+
+        if (filePath.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "No File Selected", "Please select a file to encrypt.");
+            return;
+        }
+
+        if (password.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "No Password", "Please enter a password for encryption.");
+            return;
+        }
+
+        if (!encryptionService.validateEncryptionPassword(password)) {
+            showAlert(Alert.AlertType.WARNING, "Weak Password",
+                "Password is too weak. Use at least 12 characters with mixed case, numbers, and symbols.");
+            return;
+        }
+
+        setEncryptionUIState(true);
+        updateStatusLabel("Starting file encryption...");
+
+        Task<EncryptionResult> encryptionTask = new Task<>() {
+            @Override
+            protected EncryptionResult call() throws Exception {
+                EncryptionResult result = null;
+
+                switch (algorithm) {
+                    case "AES-256":
+                        result = encryptionService.encryptFileAES(filePath, password);
+                        break;
+                    case "RSA-2048":
+                        showAlert(Alert.AlertType.INFORMATION, "RSA Key Required",
+                            "For RSA encryption, please first generate or select RSA keys.");
+                        return null;
+                    case "Hybrid":
+                        showAlert(Alert.AlertType.INFORMATION, "RSA Key Required",
+                            "For hybrid encryption, please first generate or select RSA keys.");
+                        return null;
+                    default:
+                        throw new IllegalArgumentException("Unsupported algorithm: " + algorithm);
+                }
+
+                return result;
+            }
+
+            @Override
+            protected void succeeded() {
+                EncryptionResult result = getValue();
+                if (result != null) {
+                    encryptionHistory.add(0, result); // Add to beginning of list
+                    setEncryptionUIState(false);
+                    updateStatusLabel("File encryption completed successfully");
+
+                    EventManager.getInstance().publishEvent(new EventManager.EncryptionCompletedEvent(
+                        result.getId(),
+                        result.getOperationType().getDisplayName(),
+                        result.getAlgorithm().getDisplayName(),
+                        true,
+                        null
+                    ));
+                }
+            }
+
+            @Override
+            protected void failed() {
+                setEncryptionUIState(false);
+                updateStatusLabel("Encryption failed: " + getException().getMessage());
+
+                EventManager.getInstance().publishEvent(new EventManager.EncryptionCompletedEvent(
+                    "",
+                    "Encryption",
+                    algorithm,
+                    false,
+                    getException().getMessage()
+                ));
+            }
+        };
+
+        new Thread(encryptionTask).start();
+    }
+
+    @FXML
+    public void handleDecryptFile() {
+        String filePath = selectedFilePath.getText();
+        String password = encryptionPasswordField.getText();
+
+        if (filePath.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "No File Selected", "Please select a file to decrypt.");
+            return;
+        }
+
+        if (password.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "No Password", "Please enter the password for decryption.");
+            return;
+        }
+
+        setEncryptionUIState(true);
+        updateStatusLabel("Starting file decryption...");
+
+        Task<EncryptionResult> decryptionTask = new Task<>() {
+            @Override
+            protected EncryptionResult call() throws Exception {
+                EncryptionResult result = null;
+
+                if (filePath.endsWith(".encrypted")) {
+                    result = encryptionService.decryptFileAES(filePath, password);
+                } else if (filePath.endsWith(".rsa.encrypted")) {
+                    showAlert(Alert.AlertType.INFORMATION, "RSA Key Required",
+                        "For RSA decryption, please select the corresponding private key file.");
+                    return null;
+                } else if (filePath.endsWith(".hybrid.encrypted")) {
+                    showAlert(Alert.AlertType.INFORMATION, "RSA Key Required",
+                        "For hybrid decryption, please select the corresponding private key file.");
+                    return null;
+                } else {
+                    showAlert(Alert.AlertType.WARNING, "Unknown File Type",
+                        "Cannot determine encryption type from file extension.");
+                    return null;
+                }
+
+                return result;
+            }
+
+            @Override
+            protected void succeeded() {
+                EncryptionResult result = getValue();
+                if (result != null) {
+                    encryptionHistory.add(0, result);
+                    setEncryptionUIState(false);
+                    updateStatusLabel("File decryption completed successfully");
+
+                    EventManager.getInstance().publishEvent(new EventManager.EncryptionCompletedEvent(
+                        result.getId(),
+                        result.getOperationType().getDisplayName(),
+                        result.getAlgorithm().getDisplayName(),
+                        true,
+                        null
+                    ));
+                }
+            }
+
+            @Override
+            protected void failed() {
+                setEncryptionUIState(false);
+                updateStatusLabel("Decryption failed: " + getException().getMessage());
+
+                EventManager.getInstance().publishEvent(new EventManager.EncryptionCompletedEvent(
+                    "",
+                    "Decryption",
+                    "Unknown",
+                    false,
+                    getException().getMessage()
+                ));
+            }
+        };
+
+        new Thread(decryptionTask).start();
+    }
+
+    @FXML
+    public void handleGenerateKeys() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save RSA Key Pair");
+        fileChooser.getExtensionFilters().add(
+            new FileChooser.ExtensionFilter("Key Files", "*.key")
+        );
+
+        File file = fileChooser.showSaveDialog(getStage());
+        if (file != null) {
+            String keyPath = file.getAbsolutePath();
+            if (keyPath.endsWith(".key")) {
+                keyPath = keyPath.substring(0, keyPath.length() - 4);
+            }
+
+            updateStatusLabel("Generating RSA key pair...");
+
+            Task<EncryptionResult> keyGenTask = new Task<>() {
+                @Override
+                protected EncryptionResult call() throws Exception {
+                    return encryptionService.generateRSAKeyPair(keyPath);
+                }
+
+                @Override
+                protected void succeeded() {
+                    EncryptionResult result = getValue();
+                    updateStatusLabel("RSA key pair generated successfully");
+                    showAlert(Alert.AlertType.INFORMATION, "Keys Generated",
+                        "RSA key pair generated successfully:\n" +
+                        "Private key: " + keyPath + "_private.key\n" +
+                        "Public key: " + keyPath + "_public.key");
+                }
+
+                @Override
+                protected void failed() {
+                    updateStatusLabel("Key generation failed: " + getException().getMessage());
+                    showAlert(Alert.AlertType.ERROR, "Key Generation Failed",
+                        "Failed to generate RSA keys: " + getException().getMessage());
+                }
+            };
+
+            new Thread(keyGenTask).start();
+        }
+    }
+
+    @FXML
+    public void handleClearEncryptionHistory() {
+        encryptionHistory.clear();
+        updateStatusLabel("Encryption history cleared");
+    }
+
+    // Helper Methods
+    private void updateScanStats(PortScanResult scanResult) {
+        scanStatsLabel.setText(String.format("Scan completed: %d total, %d open, %d vulnerable",
+            scanResult.getTotalPortsCount(),
+            scanResult.getOpenPortsCount(),
+            scanResult.getVulnerablePortsCount()));
+    }
 }
