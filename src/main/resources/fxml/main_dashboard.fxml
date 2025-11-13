@@ -211,7 +211,7 @@
                         <TableView fx:id="scanResultsTable" styleClass="results-table">
                             <columns>
                                 <TableColumn fx:id="portColumn" text="Port" prefWidth="60"/>
-                                <TableColumn fx:id="statusColumn" text="Status" prefWidth="80"/>
+                                <TableColumn fx:id="portStatusColumn" text="Status" prefWidth="80"/>
                                 <TableColumn fx:id="serviceColumn" text="Service" prefWidth="120"/>
                                 <TableColumn fx:id="responseTimeColumn" text="Response Time" prefWidth="100"/>
                                 <TableColumn fx:id="vulnerabilitiesColumn" text="Vulnerabilities" prefWidth="200"/>
@@ -278,7 +278,7 @@
                                 <TableColumn fx:id="algorithmColumn" text="Algorithm" prefWidth="100"/>
                                 <TableColumn fx:id="fileNameColumn" text="File Name" prefWidth="200"/>
                                 <TableColumn fx:id="fileSizeColumn" text="Size" prefWidth="80"/>
-                                <TableColumn fx:id="statusColumn" text="Status" prefWidth="80"/>
+                                <TableColumn fx:id="encryptionStatusColumn" text="Status" prefWidth="80"/>
                                 <TableColumn fx:id="verificationColumn" text="Verified" prefWidth="80"/>
                             </columns>
                         </TableView>

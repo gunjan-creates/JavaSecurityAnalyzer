@@ -92,23 +92,20 @@ public class PortScanService {
 
             // Calculate final scan duration
             long endTime = System.currentTimeMillis();
-            scanResult = new PortScanResult(targetHost, startPort, endPort, endTime - startTime) {
-                // Override to include all the collected results
-                {
-                    for (PortScanResult.SinglePortResult result : scanResult.getPortResults()) {
-                        this.addPortResult(result);
-                    }
-                }
-            };
+            long duration = endTime - startTime;
 
-            scanResult.setStatus(scanCancelled ? PortScanResult.ScanStatus.CANCELLED : PortScanResult.ScanStatus.COMPLETED);
+            PortScanResult finalResult = new PortScanResult(targetHost, startPort, endPort, duration);
+            for (PortScanResult.SinglePortResult result : scanResult.getPortResults()) {
+                finalResult.addPortResult(result);
+            }
 
-            logger.info("Port scan completed: {}", scanResult.getSummary());
+            finalResult.setStatus(scanCancelled ? PortScanResult.ScanStatus.CANCELLED : PortScanResult.ScanStatus.COMPLETED);
 
-            return scanResult;
+            logger.info("Port scan completed: {}", finalResult.getSummary());
+
+            return finalResult;
 
         } catch (Exception e) {
-            scanResult.setStatus(PortScanResult.ScanStatus.FAILED);
             logger.error("Port scan failed: {}", e.getMessage(), e);
             throw new NetworkScanException("Port scan failed", e);
         } finally {
@@ -174,11 +171,12 @@ public class PortScanService {
                 break;
             }
 
+            final int portToScan = port;
             Future<PortScanResult.SinglePortResult> future = executorService.submit(() -> {
                 try {
-                    return scanSinglePort(targetAddress, port, timeoutMs);
+                    return scanSinglePort(targetAddress, portToScan, timeoutMs);
                 } catch (Exception e) {
-                    logger.warn("Error scanning port {}: {}", port, e.getMessage());
+                    logger.warn("Error scanning port {}: {}", portToScan, e.getMessage());
                     return null;
                 } finally {
                     int completed = completedScans.incrementAndGet();

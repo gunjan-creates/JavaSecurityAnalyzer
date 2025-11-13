@@ -31,7 +31,6 @@ public class MainController {
     private final PortScanService portScanService;
     private final EncryptionService encryptionService;
     private final SecurityScoringService securityScoringService;
-    private final FileService fileService;
 
     // Data
     private PasswordAnalysis currentPasswordAnalysis;
@@ -87,7 +86,7 @@ public class MainController {
     @FXML private CheckBox showVulnerableOnly;
     @FXML private TableView<PortScanResult.SinglePortResult> scanResultsTable;
     @FXML private TableColumn<PortScanResult.SinglePortResult, String> portColumn;
-    @FXML private TableColumn<PortScanResult.SinglePortResult, String> statusColumn;
+    @FXML private TableColumn<PortScanResult.SinglePortResult, String> portStatusColumn;
     @FXML private TableColumn<PortScanResult.SinglePortResult, String> serviceColumn;
     @FXML private TableColumn<PortScanResult.SinglePortResult, String> responseTimeColumn;
     @FXML private TableColumn<PortScanResult.SinglePortResult, String> vulnerabilitiesColumn;
@@ -106,7 +105,7 @@ public class MainController {
     @FXML private TableColumn<EncryptionResult, String> algorithmColumn;
     @FXML private TableColumn<EncryptionResult, String> fileNameColumn;
     @FXML private TableColumn<EncryptionResult, String> fileSizeColumn;
-    @FXML private TableColumn<EncryptionResult, String> statusColumn;
+    @FXML private TableColumn<EncryptionResult, String> encryptionStatusColumn;
     @FXML private TableColumn<EncryptionResult, String> verificationColumn;
 
     /**
@@ -117,7 +116,6 @@ public class MainController {
         this.portScanService = new PortScanService();
         this.encryptionService = new EncryptionService();
         this.securityScoringService = new SecurityScoringService();
-        this.fileService = new FileService();
 
         this.encryptionHistory = FXCollections.observableArrayList();
         this.scanResults = FXCollections.observableArrayList();
@@ -173,7 +171,7 @@ public class MainController {
         portColumn.setCellValueFactory(data ->
             new javafx.beans.property.SimpleStringProperty(String.valueOf(data.getValue().getPort())));
 
-        statusColumn.setCellValueFactory(data ->
+        portStatusColumn.setCellValueFactory(data ->
             new javafx.beans.property.SimpleStringProperty(data.getValue().getStatus().getDisplayName()));
 
         serviceColumn.setCellValueFactory(data ->
@@ -222,7 +220,7 @@ public class MainController {
         fileSizeColumn.setCellValueFactory(data ->
             new javafx.beans.property.SimpleStringProperty(data.getValue().getFormattedFileSize()));
 
-        statusColumn.setCellValueFactory(data ->
+        encryptionStatusColumn.setCellValueFactory(data ->
             new javafx.beans.property.SimpleStringProperty(data.getValue().getStatus().getDisplayName()));
 
         verificationColumn.setCellValueFactory(data ->
@@ -481,7 +479,7 @@ public class MainController {
             updateSecurityScore();
             updateStatusLabel("Security scores updated");
         } else {
-            showAlert(Alert.AlertType.INFO, "No Data", "No analysis data available for scoring.");
+            showAlert(Alert.AlertType.INFORMATION, "No Data", "No analysis data available for scoring.");
         }
     }
 
@@ -1204,10 +1202,11 @@ public class MainController {
 
         File file = fileChooser.showSaveDialog(getStage());
         if (file != null) {
-            String keyPath = file.getAbsolutePath();
-            if (keyPath.endsWith(".key")) {
-                keyPath = keyPath.substring(0, keyPath.length() - 4);
-            }
+            String selectedPath = file.getAbsolutePath();
+            String normalizedPath = selectedPath.endsWith(".key")
+                ? selectedPath.substring(0, selectedPath.length() - 4)
+                : selectedPath;
+            final String keyPath = normalizedPath;
 
             updateStatusLabel("Generating RSA key pair...");
 
@@ -1219,7 +1218,6 @@ public class MainController {
 
                 @Override
                 protected void succeeded() {
-                    EncryptionResult result = getValue();
                     updateStatusLabel("RSA key pair generated successfully");
                     showAlert(Alert.AlertType.INFORMATION, "Keys Generated",
                         "RSA key pair generated successfully:\n" +
