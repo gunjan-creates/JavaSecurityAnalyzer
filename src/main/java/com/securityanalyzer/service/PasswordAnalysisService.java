@@ -5,6 +5,8 @@ import com.nulabinc.zxcvbn.Zxcvbn;
 import com.securityanalyzer.exception.SecurityAnalysisException;
 import com.securityanalyzer.model.PasswordAnalysis;
 import org.passay.*;
+import org.passay.dictionary.ArrayWordList;
+import org.passay.dictionary.WordListDictionary;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -17,6 +19,12 @@ import java.util.regex.Pattern;
  * Uses Zxcvbn4j for strength scoring and Passay for pattern detection.
  */
 public class PasswordAnalysisService {
+
+    private static final String[] COMMON_DICTIONARY_WORDS = {
+        "password", "admin", "user", "login", "welcome", "security",
+        "computer", "internet", "network", "system", "access", "account",
+        "private", "public", "secure", "protect", "remember", "secret"
+    };
 
     private final Zxcvbn zxcvbn;
     private final PasswordValidator passwordValidator;
@@ -45,8 +53,8 @@ public class PasswordAnalysisService {
      * @throws SecurityAnalysisException if analysis fails
      */
     public PasswordAnalysis analyzePassword(String password) throws SecurityAnalysisException {
-        if (password == null) {
-            throw new SecurityAnalysisException("Password cannot be null");
+        if (password == null || password.trim().isEmpty()) {
+            throw new SecurityAnalysisException("Password cannot be null or empty");
         }
 
         try {
@@ -210,13 +218,7 @@ public class PasswordAnalysisService {
      * @return True if dictionary word detected
      */
     private boolean containsDictionaryWord(String password) {
-        String[] commonWords = {
-            "password", "admin", "user", "login", "welcome", "security",
-            "computer", "internet", "network", "system", "access", "account",
-            "private", "public", "secure", "protect", "remember", "secret"
-        };
-
-        for (String word : commonWords) {
+        for (String word : COMMON_DICTIONARY_WORDS) {
             if (password.contains(word)) {
                 return true;
             }
@@ -291,8 +293,9 @@ public class PasswordAnalysisService {
         // Whitespace rule
         rules.add(new WhitespaceRule());
 
-        // Dictionary rule
-        rules.add(new DictionaryRule());
+        // Dictionary rule using lightweight in-memory word list
+        WordListDictionary dictionary = new WordListDictionary(new ArrayWordList(COMMON_DICTIONARY_WORDS, true));
+        rules.add(new DictionaryRule(dictionary));
 
         // Illegal character sequence rule
         rules.add(new IllegalSequenceRule(EnglishSequenceData.Alphabetical, 3, false));
