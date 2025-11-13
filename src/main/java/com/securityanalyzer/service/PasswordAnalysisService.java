@@ -11,6 +11,7 @@ import org.passay.dictionary.WordListDictionary;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -183,7 +184,7 @@ public class PasswordAnalysisService {
         }
 
         // Detect dictionary words
-        if (containsDictionaryWord(password.toLowerCase())) {
+        if (containsDictionaryWord(password)) {
             analysis.setHasDictionaryWord(true);
             analysis.addDetectedPattern("Contains dictionary word");
         }
@@ -218,8 +219,9 @@ public class PasswordAnalysisService {
      * @return True if dictionary word detected
      */
     private boolean containsDictionaryWord(String password) {
+        String normalized = password.toLowerCase();
         for (String word : COMMON_DICTIONARY_WORDS) {
-            if (password.contains(word)) {
+            if (normalized.contains(word)) {
                 return true;
             }
         }
@@ -294,7 +296,9 @@ public class PasswordAnalysisService {
         rules.add(new WhitespaceRule());
 
         // Dictionary rule using lightweight in-memory word list
-        WordListDictionary dictionary = new WordListDictionary(new ArrayWordList(COMMON_DICTIONARY_WORDS, true));
+        String[] dictionaryWords = Arrays.copyOf(COMMON_DICTIONARY_WORDS, COMMON_DICTIONARY_WORDS.length);
+        Arrays.sort(dictionaryWords, String.CASE_INSENSITIVE_ORDER);
+        WordListDictionary dictionary = new WordListDictionary(new ArrayWordList(dictionaryWords, false));
         rules.add(new DictionaryRule(dictionary));
 
         // Illegal character sequence rule
