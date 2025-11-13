@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java Security Analyzer – Web Edition</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="hero">
+        <div class="hero__content">
+            <h1>Security Toolkit in Your Browser</h1>
+            <p class="hero__subtitle">Analyze password strength, experiment with AES encryption, and explore safe-by-design security workflows directly in a static web app that runs anywhere—GitHub Pages included.</p>
+            <a class="hero__cta" href="#password-analyzer">Start analyzing</a>
+        </div>
+        <div class="hero__status" id="crypto-status" aria-live="polite"></div>
+    </header>
+
+    <main>
+        <section id="password-analyzer" class="panel">
+            <div class="panel__header">
+                <h2>Password Strength Analyzer</h2>
+                <p>Backed by <code>zxcvbn</code> heuristics for realistic cracking-time estimates.</p>
+            </div>
+            <form class="panel__form" id="password-form">
+                <label for="password-input">Enter a password</label>
+                <div class="input-row">
+                    <input type="password" id="password-input" name="password" autocomplete="off" placeholder="CorrectHorseBatteryStaple!" required>
+                    <button type="submit">Analyze</button>
+                    <button type="button" id="toggle-password" aria-pressed="false" aria-label="Show password">Show</button>
+                </div>
+            </form>
+            <div class="analysis" id="password-results" hidden>
+                <div class="analysis__score">
+                    <span class="analysis__label">Strength score</span>
+                    <progress id="strength-bar" max="100" value="0"></progress>
+                    <span id="strength-label" class="analysis__value">0 / 100</span>
+                </div>
+                <div class="analysis__insights">
+                    <div>
+                        <h3>Key traits</h3>
+                        <ul id="trait-list"></ul>
+                    </div>
+                    <div>
+                        <h3>Improvement tips</h3>
+                        <ul id="suggestion-list"></ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="text-encryption" class="panel">
+            <div class="panel__header">
+                <h2>Secure Text Playground</h2>
+                <p>Client-side AES-GCM with PBKDF2 key derivation—no data ever leaves your browser.</p>
+            </div>
+            <form class="panel__form" id="text-encryption-form">
+                <label for="text-input">Plaintext</label>
+                <textarea id="text-input" rows="6" placeholder="Paste or type sensitive text here..."></textarea>
+
+                <label for="text-password">Password / passphrase</label>
+                <input type="password" id="text-password" placeholder="Choose a strong password" required>
+
+                <div class="button-row">
+                    <button type="button" id="encrypt-text">Encrypt</button>
+                    <button type="button" id="decrypt-text">Decrypt</button>
+                    <button type="button" id="clear-text">Clear</button>
+                </div>
+
+                <label for="text-output">Result</label>
+                <textarea id="text-output" rows="6" readonly placeholder="Encrypted output will appear here"></textarea>
+            </form>
+            <p class="hint">Encrypted payloads bundle salt and IV in a URL-safe Base64 string so you can store and share them easily.</p>
+        </section>
+
+        <section id="file-encryption" class="panel">
+            <div class="panel__header">
+                <h2>File Encryption (Experimental)</h2>
+                <p>Encrypt small local files in-memory. Nothing is uploaded or stored.</p>
+            </div>
+            <form class="panel__form" id="file-encryption-form">
+                <label for="file-input">Choose a file to encrypt</label>
+                <input type="file" id="file-input" accept="*/*">
+
+                <label for="file-password">Password / passphrase</label>
+                <input type="password" id="file-password" placeholder="Use the same password for decrypting later">
+
+                <div class="button-row">
+                    <button type="button" id="encrypt-file">Encrypt File</button>
+                    <button type="button" id="decrypt-file">Decrypt File</button>
+                </div>
+
+                <div class="analysis" id="file-results" hidden>
+                    <p id="file-status" class="analysis__value"></p>
+                    <a id="download-link" class="download-link" download>Download</a>
+                </div>
+            </form>
+            <p class="hint">AES-GCM adds authentication to detect tampering. Keep your password safe—there is no recovery if it is lost.</p>
+        </section>
+
+        <section id="security-tips" class="panel panel--secondary">
+            <div class="panel__header">
+                <h2>Secure Workflow Checklist</h2>
+                <p>Practical steps to apply what you test here in production.</p>
+            </div>
+            <ul class="tip-list">
+                <li><strong>Rotate secrets regularly:</strong> Schedule credential rotation and enforce strong password policies.</li>
+                <li><strong>Use zero-trust patterns:</strong> Authenticate every request and least-privilege every integration.</li>
+                <li><strong>Encrypt at rest and in transit:</strong> Pair AES-encrypted storage with TLS 1.3 transport security.</li>
+                <li><strong>Automate audits:</strong> Integrate security scanners into CI to catch regressions early.</li>
+                <li><strong>Educate teammates:</strong> Share phishing simulations and security training to reduce social engineering risk.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>Built as a static web companion to the original Java Security Analyzer. Ready for GitHub Pages deployment.</p>
+        <p class="footer__meta">Source on GitHub · Client-side only · Last updated <span id="build-date"></span></p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/zxcvbn@4.4.2/dist/zxcvbn.js" integrity="sha384-uMwiH8DblIZ1RVn06OkP4VG1p5MNDoAuCEi0aKBslZx2drXr/7EQo1leChX2NDYM" crossorigin="anonymous"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html>
