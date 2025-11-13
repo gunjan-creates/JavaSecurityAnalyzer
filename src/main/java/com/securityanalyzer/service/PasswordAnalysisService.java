@@ -1,7 +1,7 @@
 package com.securityanalyzer.service;
 
-import com.nulab.zxcvbn.Strength;
-import com.nulab.zxcvbn.Zxcvbn;
+import com.nulabinc.zxcvbn.Strength;
+import com.nulabinc.zxcvbn.Zxcvbn;
 import com.securityanalyzer.exception.SecurityAnalysisException;
 import com.securityanalyzer.model.PasswordAnalysis;
 import org.passay.*;
