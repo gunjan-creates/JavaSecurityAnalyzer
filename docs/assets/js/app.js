@@ -11,6 +11,7 @@
         wirePasswordAnalyzer();
         wireTextEncryption();
         wireFileEncryption();
+        activateRevealAnimations();
         writeBuildDate();
     });
 
@@ -392,6 +393,31 @@
             year: "numeric",
             month: "short",
             day: "numeric"
+        });
+    }
+
+    function activateRevealAnimations() {
+        const panels = Array.from(document.querySelectorAll(".panel"));
+        if (!panels.length) {
+            return;
+        }
+
+        if (!("IntersectionObserver" in window)) {
+            return;
+        }
+
+        const observer = new IntersectionObserver((entries, obs) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add("panel--animated", "is-visible");
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.15, rootMargin: "0px 0px -10% 0px" });
+
+        panels.forEach((panel) => {
+            panel.classList.add("panel--animated");
+            observer.observe(panel);
         });
     }
 })();
