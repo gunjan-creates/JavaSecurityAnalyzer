@@ -1,6 +1,26 @@
 # Java Security Analyzer
 
-A comprehensive desktop-based cybersecurity analysis tool built with Java and JavaFX. The application provides system security analysis through password scanning, port vulnerability detection, file encryption/decryption capabilities, and an overall security risk scoring system with a clean dashboard interface.
+A browser-first security toolkit packaged as a static site that runs anywhere GitHub Pages runs. The new **Web Edition** ships client-side password analysis, AES-GCM text/file encryption, and actionable security checklists—no backend required. The original JavaFX desktop project remains in `src/` for reference as the **Legacy Desktop Edition**.
+
+## Web Edition (Static, GitHub Pages Ready)
+
+- **Location**: `docs/` (configure GitHub Pages to serve from the `docs` folder)
+- **Stack**: Vanilla HTML/CSS/JavaScript, Web Crypto API, `zxcvbn` via CDN
+- **Capabilities**:
+   - Password strength heuristics with actionable suggestions
+   - Text encryption/decryption using AES-GCM + PBKDF2 (entirely in-browser)
+   - Experimental file encryption/decryption using local memory only
+   - Security workflow checklist for quick wins
+- **Deployment**: Push to GitHub, enable Pages → Branch `master` → Folder `/docs`
+- **Limitations**: Browser sandboxes block raw port scanning and filesystem access beyond the selected files; those Desktop features stay in the legacy app.
+
+> Tip: Open `docs/index.html` locally or on GitHub Pages to explore the interactive web dashboard. No build step is required.
+
+---
+
+## Legacy JavaFX Desktop Edition
+
+The original comprehensive desktop cybersecurity analysis tool built with Java and JavaFX is still available in `src/`. It provides system security analysis through password scanning, port vulnerability detection, file encryption/decryption capabilities, and an overall security risk scoring system with a clean dashboard interface.
 
 ## Features
 
