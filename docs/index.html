@@ -10,11 +10,36 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div class="background-layers" aria-hidden="true">
+        <span class="background-layers__orb background-layers__orb--one"></span>
+        <span class="background-layers__orb background-layers__orb--two"></span>
+        <span class="background-layers__grid"></span>
+    </div>
+
     <header class="hero">
         <div class="hero__content">
+            <div class="hero__badges" aria-hidden="true">
+                <span class="hero__badge">Client-side crypto</span>
+                <span class="hero__badge">Zxcvbn heuristics</span>
+                <span class="hero__badge">Runs on GitHub Pages</span>
+            </div>
             <h1>Security Toolkit in Your Browser</h1>
             <p class="hero__subtitle">Analyze password strength, experiment with AES encryption, and explore safe-by-design security workflows directly in a static web app that runs anywhere—GitHub Pages included.</p>
             <a class="hero__cta" href="#password-analyzer">Start analyzing</a>
+            <div class="hero__metrics" role="presentation">
+                <div class="hero__metric">
+                    <strong>256-bit</strong>
+                    <span>AES-GCM encryption</span>
+                </div>
+                <div class="hero__metric">
+                    <strong>100k</strong>
+                    <span>PBKDF2 iterations</span>
+                </div>
+                <div class="hero__metric">
+                    <strong>Realtime</strong>
+                    <span>password scoring</span>
+                </div>
+            </div>
         </div>
         <div class="hero__status" id="crypto-status" aria-live="polite"></div>
     </header>
@@ -118,6 +143,7 @@
 
     <footer class="footer">
         <p>Built as a static web companion to the original Java Security Analyzer. Ready for GitHub Pages deployment.</p>
+        <p>© 2025 Gunjan Ghangare. All rights reserved.</p>
         <p class="footer__meta">Source on GitHub · Client-side only · Last updated <span id="build-date"></span></p>
     </footer>
 
